@@ -1,0 +1,41 @@
+public static void downloadImage(String fileUrl) {
+
+		if (fileUrl == null) {
+			return;
+		}
+		if (fileUrl.equalsIgnoreCase("")) {
+			return;
+		}
+		Bitmap bmImg = null;
+		URL myFileUrl = null;
+		try {
+			myFileUrl = new URL(fileUrl);
+		} catch (MalformedURLException e) {
+
+			e.printStackTrace();
+		}// Folder
+		try {
+			HttpURLConnection conn = (HttpURLConnection) myFileUrl
+					.openConnection();
+			conn.setDoInput(true);
+			conn.connect();
+			InputStream is = conn.getInputStream();
+			bmImg = BitmapFactory.decodeStream(is);
+			String sdcardpath = Environment.getExternalStorageDirectory()
+					.getPath();
+			File file = new File(sdcardpath, "Folder");
+			file.mkdir();
+			String fileName = fileUrl.substring(fileUrl.lastIndexOf("/"),
+					fileUrl.lastIndexOf("."));
+			String name = fileName + ".png";
+			File f = new File(file, name);
+
+			FileOutputStream fos = new FileOutputStream(f.getAbsolutePath());
+			bmImg.compress(Bitmap.CompressFormat.PNG, 100, fos);
+			fos.flush();
+			fos.close();
+		} catch (IOException e) {
+
+			e.printStackTrace();
+		}
+	}
