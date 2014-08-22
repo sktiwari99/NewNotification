@@ -39,3 +39,38 @@ public static void downloadImage(String fileUrl) {
 			e.printStackTrace();
 		}
 	}
+...//...................................//......................................
+
+if (jsonObject2.getString("s_image") != null) {
+
+							Thread thread = new Thread(new Runnable() {
+								@Override
+								public void run() {
+										Constants.downloadImage(Constants.ImageBASEURL+studentDTO.getS_image());
+								}
+							});
+							String fileUrl =Constants.ImageBASEURL+studentDTO.getS_image();
+							Log.v("fileUrllll :", ""+fileUrl);
+							if (fileUrl != null) {
+								if (!fileUrl.equalsIgnoreCase("")) {
+									String fileName = fileUrl.substring(
+											fileUrl.lastIndexOf("/"),
+											fileUrl.lastIndexOf("."));
+									File file = new File(
+											Constants.SDCARDPATH + "/Folder/"
+													+ fileName + ".png");	
+									Log.v("dfile :", ""+file);
+									String filepath=file.getAbsolutePath();										
+									if (!file.exists()) {
+										thread.start();
+										thread.join();
+									}
+								}
+							}
+							
+					}
+						Constants.sdto = studentDTO;
+						Intent intent = new Intent(context, YourActivity.class);
+						startActivity(intent);
+						finish();
+					}
