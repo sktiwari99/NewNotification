@@ -1,0 +1,45 @@
+package mytest.com.util;
+
+import java.io.File;
+import java.util.Map;
+import java.util.Set;
+
+public class WebServiceMultiPartForm {
+    private static WebServiceMultiPartForm singleon;
+
+    private WebServiceMultiPartForm(){
+
+    }
+    public static WebServiceMultiPartForm getInstance(){
+        if(WebServiceMultiPartForm.singleon == null){
+            synchronized(WebServiceMultiPartForm.class)	{
+                if(WebServiceMultiPartForm.singleon == null){
+                    WebServiceMultiPartForm.singleon = new WebServiceMultiPartForm();
+		}
+            }
+	}
+	return WebServiceMultiPartForm.singleon;
+    }
+    public String execute(String url,Map <String,Object>multipartData) throws Exception{
+        String ret="error";
+        try{
+            MultipartUtility multipart = new MultipartUtility(url,"UTF-8");
+            Set <String>keys=multipartData.keySet();
+            for(String key:keys){
+                Object value=multipartData.get(key);
+                if(value instanceof File){
+                    File file=(File)value;
+                    multipart.addFilePart(key,file);
+                }
+                else  if(value instanceof String){
+                    String val=(String)value;
+                    multipart.addFormField(key,val);
+                }
+            }
+            ret = multipart.finish_();
+        }catch(Exception ex){
+            throw new Exception(ex);
+        }
+        return ret;
+    }   
+}
