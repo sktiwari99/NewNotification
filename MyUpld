@@ -1,0 +1,394 @@
+package mytest.com;
+
+import java.io.File;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import mytest.com.dto.StudentDTO;
+import mytest.com.util.Constants;
+import mytest.com.util.JSONUtil;
+import mytest.com.util.WebRequestTask;
+import mytest.com.util.WebServiceMultiPartForm;
+
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import com.google.gson.Gson;
+
+import android.app.Activity;
+import android.app.DatePickerDialog;
+import android.app.Dialog;
+import android.app.DatePickerDialog.OnDateSetListener;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
+import android.preference.PreferenceManager;
+import android.provider.MediaStore;
+import android.util.Log;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
+import android.widget.DatePicker;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.RadioGroup.OnCheckedChangeListener;
+import android.widget.Toast;
+
+public class Profile extends Activity {
+	Context context = this;
+	EditText sname;
+	EditText semail;
+	EditText smobileno;
+	EditText sgender;
+	EditText scurrentpercent;
+	EditText semester;
+	EditText rollnumber;
+	EditText branch;
+	EditText studentdob;
+	ImageView imageview;
+	StudentDTO studentDTO;
+	Date date;
+	Dialog dialog;
+	DatePickerDialog dtpd;
+	private static final int imagerequestcode = 99;
+	String picturePath;
+	File imagepath;
+	Dialog myDialog = null;
+	URL imgurl = null;
+
+	Handler handler = new Handler() {
+		@Override
+		public void handleMessage(Message msg) {
+			if (msg.what == 1) {
+				String response = msg.obj.toString();
+				Log.v("Profile Response : ", "" + response);
+				JSONObject jsonObject = null;
+				studentDTO=new StudentDTO();
+				try {
+					jsonObject = new JSONObject(response);
+					String status = jsonObject.getString("status");
+					String message = jsonObject.getString("message");
+					if (status.equalsIgnoreCase("true")) {
+						 JSONObject jsonObject2 = jsonObject
+								.getJSONObject("response");
+						sname.setText(jsonObject2.getString("s_name"));
+						semail.setText(jsonObject2.getString("s_email"));
+						smobileno.setText(jsonObject2.getString("s_contact"));
+						studentdob.setText(jsonObject2.getString("s_dob"));
+						sgender.setText(jsonObject2.getString("s_gender"));												
+						rollnumber.setText(jsonObject2.getString("s_rollno"));
+						semester.setText(jsonObject2.getString("s_semester"));
+						branch.setText(jsonObject2.getString("s_branch"));
+						studentDTO.setS_image(jsonObject2.getString("s_image"));
+						
+						try {
+							SharedPreferences sharedPreferences = context
+									.getSharedPreferences(Constants.SHAREDPREFERENCE , Context.MODE_WORLD_WRITEABLE);
+							Editor editor = sharedPreferences.edit();
+									editor.putString("SROLL", jsonObject2.getString("s_rollno"));
+									editor.putString("SEMAIL", jsonObject2.getString("s_email"));
+									editor.putString("SDOB", jsonObject2.getString("s_dob"));
+									editor.putString("SCONTACT", jsonObject2.getString("s_contact"));
+									editor.putString("SGENDER", jsonObject2.getString("s_gender"));
+									editor.putString("SNAME", jsonObject2.getString("s_name"));
+									editor.putString("SBRANCH", jsonObject2.getString("s_branch"));
+									editor.putString("SEMESTER", jsonObject2.getString("s_semester"));
+							editor.commit();
+						} catch (Exception ex) {
+							ex.printStackTrace();
+						}
+						
+						if (jsonObject2.getString("s_image") != null) {
+
+							Thread thread = new Thread(new Runnable() {
+								@Override
+								public void run() {
+										Constants.downloadImage(Constants.BASEURL+studentDTO.getS_image());
+								}
+							});
+							String fileUrl =Constants.BASEURL+studentDTO.getS_image();							
+							if (fileUrl != null) {
+								if (!fileUrl.equalsIgnoreCase("")) {
+									String fileName = fileUrl.substring(
+											fileUrl.lastIndexOf("/"),
+											fileUrl.lastIndexOf("."));
+									File file = new File(
+											Constants.SDCARDPATH + "/"
+													+ fileName + ".png");
+									String filepath=file.getAbsolutePath();
+									//Log.v("filepath :-", ""+file);
+									
+									if (file.exists()) {
+										//imageview.setImageURI(Uri.fromFile(file));
+										imageview.setImageBitmap(BitmapFactory.decodeFile(filepath));
+									}
+									if (!file.exists()) {
+										thread.start();
+										thread.join();
+									}
+								}
+							}
+							
+						// imgurl = new URL(jsonObject2.getString("s_image"));
+						// Bitmap
+						// bmp=BitmapFactory.decodeStream(imgurl.openConnection()
+						// .getInputStream());
+						// imageview.setImageBitmap(bmp);
+						// Bitmap bmp =
+						// BitmapFactory.decodeStream(Constants.downloadImage(Constants.downloadImage(fileUrl)));
+						// imageview.setImageBitmap(BitmapFactory.decodeFile(jsonObject2.getString("s_image")));
+
+					} else {
+						Toast.makeText(context, "No record found", 0).show();
+					}
+				}} catch (Exception ex) {
+					ex.printStackTrace();
+				}
+
+			} else {
+				Toast.makeText(context, "Server side error", 1).show();
+			}
+		}
+	};
+
+	@Override//SROLL SEMAIL SDOB SCONTACT SGENDER SNAME SBRANCH SEMESTER
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.profile);		
+		SharedPreferences sharedPreferences = context.getSharedPreferences(Constants.SHAREDPREFERENCE, Context.MODE_WORLD_READABLE);
+		String level= sharedPreferences.getString("LEVEL", "gdgh");
+		if(level.equalsIgnoreCase("TPO")){
+			findViewById(R.id.view_academic).setVisibility(View.VISIBLE);;
+		}if(level.equalsIgnoreCase("student")) {
+			findViewById(R.id.view_academic).setVisibility(View.INVISIBLE);;
+		}
+		setData();
+		getProfile();
+		findViewByIds();
+
+	}
+
+	public void setData() {
+		SharedPreferences sharedPreferences = context.getSharedPreferences(Constants.SHAREDPREFERENCE, Context.MODE_WORLD_READABLE);
+		try {			
+			sname.setText(sharedPreferences.getString("SNAME", "vbx"));
+			semail.setText(sharedPreferences.getString("SEMAIL", "sde"));
+			smobileno.setText(sharedPreferences.getString("SCONTACT", "re"));
+			sgender.setText(sharedPreferences.getString("SGENDER", "tr"));			
+			semester.setText(sharedPreferences.getString("SEMESTER", "dhf"));
+			rollnumber.setText(sharedPreferences.getString("SROLL", "sdg"));
+			branch.setText(sharedPreferences.getString("SBRANCH", "ng"));
+			studentdob.setText(sharedPreferences.getString("SDOB", "sdg"));
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+	}
+
+	public void getProfile() {
+		SharedPreferences sharedPreferences = context.getSharedPreferences(
+				Constants.SHAREDPREFERENCE, Context.MODE_WORLD_READABLE);
+		String rollnumber = sharedPreferences.getString("SROLL", "iuyt");
+		Log.v("roll no.......", "" + rollnumber);
+		List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+		nameValuePairs.add(new BasicNameValuePair("s_rollno", rollnumber));
+		new WebRequestTask(context, nameValuePairs, handler,
+				Constants.studentprofile).execute();
+
+	}
+
+	public void findViewByIds() {
+		sname = (EditText) findViewById(R.id.fullname);
+		studentdob = (EditText) findViewById(R.id.stddob);
+		semail = (EditText) findViewById(R.id.email);
+		smobileno = (EditText) findViewById(R.id.mobileno);
+		sgender = (EditText) findViewById(R.id.gender);
+		scurrentpercent = (EditText) findViewById(R.id.currentpercent);
+		semester = (EditText) findViewById(R.id.semester);
+		branch=(EditText)findViewById(R.id.branch);
+		rollnumber = (EditText) findViewById(R.id.rollnumber);
+		imageview = (ImageView) findViewById(R.id.imageview);
+	}
+     public void enterAcademicDetails(View view){
+    	 dialog=new Dialog(context);
+ 		dialog.setTitle("Enter Academic Details");
+ 		dialog.setContentView(R.layout.academic_records);
+ 		dialog.setCanceledOnTouchOutside(true);
+ 		//ssrollno,std_semester,percent,theorymarks,practicalmarks,numberofbacklog,stotalmarks
+ 		//final EditText ssrollno=(EditText)dialog.findViewById(R.id.ssrollno); 		
+ 		final EditText std_semester=(EditText)dialog.findViewById(R.id.std_semester);
+ 		final EditText spercent=(EditText)dialog.findViewById(R.id.stdpercent);
+ 		final EditText stheorymarks=(EditText)dialog.findViewById(R.id.theorymarks);
+ 		final EditText practicalmarks=(EditText)dialog.findViewById(R.id.practicalmarks);
+ 		final EditText numberofbacklog=(EditText)dialog.findViewById(R.id.numberofbacklog);
+ 		final EditText stotalmarks=(EditText)dialog.findViewById(R.id.stotalmarks);
+ 		Button submit=(Button)dialog.findViewById(R.id.submitbutton);
+ 		submit.setOnClickListener(new OnClickListener() {			
+			@Override
+			public void onClick(View v) {
+				SharedPreferences sharedPreferences = context.getSharedPreferences(Constants.SHAREDPREFERENCE, Context.MODE_WORLD_READABLE);
+				String rollno=sharedPreferences.getString("SROLL", "sdg");
+				//ssrollno.setText(rollno);
+				Log.v("psroll :", " "+rollno);
+				//String rollno=ssrollno.getText().toString();
+				String sem=std_semester.getText().toString();
+				String percent=spercent.getText().toString();
+				String theory=stheorymarks.getText().toString();
+				String practical=practicalmarks.getText().toString();
+				String backlog=numberofbacklog.getText().toString();
+				String totalmaarks=stotalmarks.getText().toString();
+				List<NameValuePair> nameValuePairs=new ArrayList<NameValuePair>();
+				nameValuePairs.add(new BasicNameValuePair("s_rollno", rollno));
+				nameValuePairs.add(new BasicNameValuePair("semester", sem));
+				nameValuePairs.add(new BasicNameValuePair("percent", percent));
+				nameValuePairs.add(new BasicNameValuePair("theorymarks", theory));
+				nameValuePairs.add(new BasicNameValuePair("practicalmarks", practical));
+				nameValuePairs.add(new BasicNameValuePair("backlog", backlog));
+				nameValuePairs.add(new BasicNameValuePair("totalmarks", totalmaarks));
+				new WebRequestTask(context, nameValuePairs, handler, Constants.studentsAcademic).execute();
+				dialog.dismiss();
+			}
+		});
+ 		dialog.show();
+     }
+	public void updateProfile(View view) {
+		String srollnumber = rollnumber.getText().toString();
+		String name = sname.getText().toString();
+		String email = semail.getText().toString();
+		String contact = smobileno.getText().toString();
+		String gender = sgender.getText().toString();
+		String dob = studentdob.getText().toString();
+		String sbranch=branch.getText().toString();
+		String currentpercent = scurrentpercent.getText().toString();
+		String sem = semester.getText().toString();
+		if(imagepath!=null){
+			Map<String, Object> map = new HashMap<String, Object>();			
+			map.put("s_name",""+ name);
+			map.put("s_contact",""+ contact);
+			map.put("s_email", ""+email);
+			map.put("s_rollno", ""+srollnumber);
+			map.put("s_gender", ""+gender);
+			map.put("s_dob", ""+dob);
+			map.put("s_branch",""+ sbranch);
+			map.put("s_semester",""+ sem);
+			map.put("s_image", imagepath);
+			Log.v("Imagepath : :", ""+imagepath);
+			try {
+				String response = WebServiceMultiPartForm.getInstance().execute(
+					Constants.studentupdateprofilewithfile, map);
+
+			} catch (Exception ex) {
+				ex.printStackTrace();
+				Log.v("exception :", ex.getMessage());
+			}
+		}
+		if(imagepath==null){
+			List<NameValuePair> nameValuePairs=new ArrayList<NameValuePair>();
+			nameValuePairs.add(new BasicNameValuePair("s_rollno", srollnumber));
+			nameValuePairs.add(new BasicNameValuePair("s_name", name));
+			nameValuePairs.add(new BasicNameValuePair("s_email", email));
+			nameValuePairs.add(new BasicNameValuePair("s_contact", contact));
+			nameValuePairs.add(new BasicNameValuePair("s_gender", gender));
+			nameValuePairs.add(new BasicNameValuePair("s_image",""));
+			nameValuePairs.add(new BasicNameValuePair("s_dob", dob));
+			nameValuePairs.add(new BasicNameValuePair("s_semester", sem));
+			nameValuePairs.add(new BasicNameValuePair("s_branch", sbranch));
+			new WebRequestTask(context, nameValuePairs, handler,Constants.studentupdateprofile).execute();
+		}	
+
+	}
+
+	public void pickImageview(View view) {
+		Intent intent = new Intent();
+		intent.setType("image/*");
+		intent.setAction(Intent.ACTION_GET_CONTENT);
+		startActivityForResult(Intent.createChooser(intent, "Select Picture"),
+				imagerequestcode);
+	}
+
+	public void onActivityResult(int requestCode, int resultCode, Intent data) {
+		if (requestCode == imagerequestcode && resultCode == RESULT_OK) {
+			Uri selectedImage = data.getData();
+			String[] filePathColumn = { MediaStore.Images.Media.DATA };
+			Cursor cursor = getContentResolver().query(selectedImage,
+					filePathColumn, null, null, null);
+			cursor.moveToFirst();
+			int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
+			picturePath = cursor.getString(columnIndex);
+			imagepath=new File(picturePath);
+			//Log.v("imagepath :", "" + imagepath);
+			//Log.v("profileimagepath :", "" + picturePath);
+			cursor.close();
+			imageview.setImageBitmap(BitmapFactory.decodeFile(picturePath));
+		}
+	}
+	public void selectDob(View view) {
+		date = new Date();
+		dtpd = new DatePickerDialog(context,
+				new OnDateSetListener() {
+
+					@Override
+					public void onDateSet(DatePicker view, int year,
+							int monthOfYear, int dayOfMonth) {
+
+						studentdob.setText("" + (monthOfYear + 1) + "-"
+								+ dayOfMonth + "-" + year);
+					}
+				}, date.getYear() + 1900, date.getMonth() + 1, date.getDay());
+		dtpd.show();
+
+	}
+	public void selectGender(View view) {
+		myDialog = new Dialog(context);
+		myDialog.setTitle("Choose gender");
+		myDialog.setContentView(R.layout.choosedialog);
+		RadioGroup group = (RadioGroup) myDialog
+				.findViewById(R.id.genderRadioGroup);
+		group.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+
+			@Override
+			public void onCheckedChanged(RadioGroup group, int checkedId) {
+				String gen = ((RadioButton) myDialog.findViewById(checkedId))
+						.getText().toString();
+				sgender.setText(gen);
+				myDialog.dismiss();
+			}
+		});
+		try {
+			myDialog.show();
+		} catch (Exception ex) {
+		}
+	}
+	@Override
+	public void onBackPressed() {
+		SharedPreferences sharedPreferences = context.getSharedPreferences(Constants.SHAREDPREFERENCE, Context.MODE_WORLD_READABLE);
+		String level= sharedPreferences.getString("LEVEL", "gdgh");
+		if(level.equalsIgnoreCase("TPO")){
+			Intent intent=new Intent(context,StudentList.class);
+			startActivity(intent);		
+			finish();
+		}
+		if(level.equalsIgnoreCase("student")) {
+			Intent intent=new Intent(context,MessageList.class);
+			startActivity(intent);		
+			finish();
+		}
+	}
+		
+}
+
