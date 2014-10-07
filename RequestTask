@@ -1,0 +1,71 @@
+package mytest.com.util;
+
+import java.util.List;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.util.EntityUtils;
+
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Message;
+import android.widget.Toast;
+
+public class WebRequestTask extends AsyncTask<Void, Integer, Void> {
+	private ProgressDialog dialog;
+	private Context context;
+	private Handler handler;
+	private List<NameValuePair> nameValuePairs;
+	private String link;
+
+	public WebRequestTask(Context context, List<NameValuePair> nameValuePairs,
+			Handler handler,String link) {
+		this.context = context;
+		this.handler = handler;
+		this.nameValuePairs = nameValuePairs;
+		this.link=link;
+	}
+
+	@Override
+	protected void onPreExecute() {
+		super.onPreExecute();
+		dialog = new ProgressDialog(context);
+		dialog.setCancelable(false);
+		dialog.setMessage("Please wait...");
+		dialog.show();
+	}
+
+	@Override
+	protected void onPostExecute(Void result) {
+		dialog.dismiss();
+		super.onPostExecute(result);
+	}
+
+	@Override
+	protected Void doInBackground(Void... params) {
+		HttpClient httpClient = new DefaultHttpClient();
+		HttpPost httpPost = new HttpPost(link);
+		try {
+			httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+			HttpResponse response = httpClient.execute(httpPost);
+
+			String responseString = EntityUtils.toString(response.getEntity());
+			Message message = handler.obtainMessage();
+			message.obj = responseString;
+			message.what = 1;
+			handler.sendMessage(message);
+		} catch (Exception e) {
+			e.printStackTrace();
+			Message message = handler.obtainMessage();
+			message.what = 0;
+			handler.sendMessage(message);
+		}
+		return null;
+	}
+}
