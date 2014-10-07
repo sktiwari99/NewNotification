@@ -1,0 +1,367 @@
+package com.example.smsdemo;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+import android.app.Activity;
+import android.app.ActivityManager;
+import android.app.ActivityManager.RunningServiceInfo;
+import android.app.AlertDialog;
+import android.app.PendingIntent;
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.location.Address;
+import android.location.Criteria;
+import android.location.Geocoder;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.provider.Settings;
+import android.telephony.SmsManager;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.Toast;
+
+import com.example.smsdemo.db.MobileDTO;
+import com.example.smsdemo.db.MyAdapter;
+
+public class MainActivity extends Activity implements LocationListener{
+	String SENT = "SMS_SENT";
+	String DELIVERED = "SMS_DELIVERED";
+	EditText PhoneNo1;
+	EditText messages;
+	int PICK_CONTACT = 99;
+	Context context = this;
+	LinearLayout numberlayout;
+	String SHAREDPREFERENCE = "messageinfo";
+	SharedPreferences sharedPreferences;
+	SmsManager sms;
+	EditText addmorecontact;
+	double latitude;
+	double longitude;
+	String address = "";
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_main);
+		sms = SmsManager.getDefault();
+		PhoneNo1 = (EditText) findViewById(R.id.phno);
+		messages = (EditText) findViewById(R.id.smstxt);
+		numberlayout = (LinearLayout) findViewById(R.id.numberlayout);
+		gpsLocation();
+		contactsList();
+		messageAutoSave();
+	}
+	private Location location = null;
+	boolean isGPSEnabled = false;
+	boolean isNetworkEnabled = false;
+	private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 1; // 1 meters
+
+	private static final long MIN_TIME_BW_UPDATES = 1000 * 1; // 1 seconds
+	public void gpsLocation(){
+		 LocationManager lm = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+		 isGPSEnabled = lm.isProviderEnabled(LocationManager.GPS_PROVIDER);
+			isNetworkEnabled = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+			
+		if(!isGPSEnabled){
+			showSettingsAlert();
+		}else {
+			String bestProvider = lm.getBestProvider(new Criteria(), true);
+	        location = lm.getLastKnownLocation(bestProvider);
+
+	        if (lm.getProvider(LocationManager.GPS_PROVIDER) != null) {
+	            lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_TIME_BW_UPDATES,MIN_DISTANCE_CHANGE_FOR_UPDATES, this);
+	        }
+	        if (lm.getProvider(LocationManager.NETWORK_PROVIDER) != null) {
+	            lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, MIN_TIME_BW_UPDATES,
+	            		MIN_DISTANCE_CHANGE_FOR_UPDATES, this);
+	        }
+		}		
+	}
+	public void showSettingsAlert() {
+		AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
+		alertDialog.setTitle("GPS is settings");
+		alertDialog
+				.setMessage("GPS is not enabled. Do you want to go to settings menu?");
+		alertDialog.setPositiveButton("Settings",
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int which) {
+						Intent intent = new Intent(
+								Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+						context.startActivity(intent);
+					}
+				});
+		alertDialog.setNegativeButton("Cancel",
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int which) {
+						dialog.cancel();
+					}
+				});
+		alertDialog.show();
+	}
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		gpsLocation();
+		super.onActivityResult(requestCode, resultCode, data);
+	}
+	
+	public void contactsList(){
+		try{
+		List<MobileDTO> numlist= new MyAdapter(context).getAllContactList();
+		for(int i=0;i<numlist.size();i++){
+			MobileDTO dto=numlist.get(i);		
+			if(i==0){
+				EditText editText=(EditText)findViewById(R.id.phno);
+				editText.setText(""+dto.getNumber());
+			}else {	
+						
+			final View view2=LayoutInflater.from(context).inflate(R.layout.addcontact, null);
+			addmorecontact=(EditText)view2.findViewById(R.id.editText1);
+			addmorecontact.setHint("Enter number");
+			ImageButton button=(ImageButton)view2.findViewById(R.id.imageButton1 );
+		    numberlayout.addView(view2);
+		    addmorecontact.setText(dto.getNumber());
+		    button.setOnClickListener(new OnClickListener() {				
+				@Override
+				public void onClick(View arg0) {					
+					numberlayout.removeView(view2);
+				}
+			});
+			}
+		}
+		}catch(Exception ex){ex.printStackTrace();}
+	}
+	
+	public void addContacts(View view) {
+		final View view2 = LayoutInflater.from(context).inflate(
+				R.layout.addcontact, null);
+		addmorecontact = (EditText) view2.findViewById(R.id.editText1);
+		addmorecontact.setHint("Enter number");
+		ImageButton button = (ImageButton) view2
+				.findViewById(R.id.imageButton1);
+
+		numberlayout.addView(view2);
+		button.setOnClickListener(new OnClickListener() {
+
+			@Override
+			public void onClick(View arg0) {
+				numberlayout.removeView(view2);
+			}
+		});
+	}
+
+	class AsyncSender extends AsyncTask<String, Void, Void> {
+		ProgressDialog progressDialog = null;
+		int no;
+		AsyncSender(int no) {
+			this.no = no;
+		}
+		@Override
+		protected void onPreExecute() {
+			progressDialog = new ProgressDialog(MainActivity.this);
+			progressDialog.setMessage("Please wait...");
+			progressDialog.show();
+		}
+
+		@Override
+		protected Void doInBackground(String... params) {
+			String thirdMobNo = params[0];
+
+			Intent senderIntent = new Intent(SENT);
+			senderIntent.putExtra("mobno" + no, thirdMobNo);
+			Intent deliveredIntent = new Intent(DELIVERED);
+			deliveredIntent.putExtra("mobno" + no, thirdMobNo);
+
+			PendingIntent sentPI = PendingIntent.getBroadcast(
+					MainActivity.this, no * 2 - 1, senderIntent,
+					PendingIntent.FLAG_CANCEL_CURRENT);
+			PendingIntent deliveredPI = PendingIntent.getBroadcast(
+					MainActivity.this, no * 2, deliveredIntent,
+					PendingIntent.FLAG_CANCEL_CURRENT);
+
+			sms.sendTextMessage(thirdMobNo, null, params[1], sentPI,
+					deliveredPI);
+			return null;
+		}
+
+		@Override
+		protected void onPostExecute(Void result) {
+			progressDialog.dismiss();
+		}
+	}
+	public void messageAutoSave() {
+		sharedPreferences = PreferenceManager
+				.getDefaultSharedPreferences(context);
+
+		messages.addTextChangedListener(new TextWatcher() {
+			@Override
+			public void onTextChanged(CharSequence s, int start, int before,
+					int count) {
+			}
+
+			@Override
+			public void beforeTextChanged(CharSequence s, int start, int count,
+					int after) {
+			}
+
+			@Override
+			public void afterTextChanged(Editable s) {
+				sharedPreferences.edit().putString("MSG", s.toString())
+						.commit();
+			}
+		});
+		messages.setText(sharedPreferences.getString("MSG", null));
+		
+	}
+	List<String> list = null;
+
+	public void send(View view) {
+		saveNumber();
+		getAddress();
+		
+		if (list.size() == 0) {
+			Toast.makeText(context, "Please enter contact number", 0).show();
+			return;
+		}
+		final String message = messages.getText().toString();
+		if(message.equalsIgnoreCase("")){
+			Toast.makeText(context, "Please write message", 0).show();
+			return;
+		}
+		AlertDialog.Builder builder = new AlertDialog.Builder(context);
+		builder.setTitle("Are you sure ?");
+		builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+
+			@Override
+			public void onClick(DialogInterface dialog1, int arg1) {
+				dialog1.dismiss();
+				try {
+					for (int m = 0; m < list.size(); m++) {
+						String mno = list.get(m);
+						new AsyncSender(m + 1).execute(mno, message + "\n"
+								+ address);
+					}
+				} catch (Exception ex) {
+					ex.printStackTrace();
+				}
+			}
+		});
+		builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
+
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
+				dialog.dismiss();
+			}
+		});
+		builder.show();
+	}
+
+	public void getAddress() {
+		Geocoder geocoder = new Geocoder(this, Locale.ENGLISH);
+		try {
+			List<Address> addresses = geocoder.getFromLocation(latitude,
+					longitude, 1);
+			if (addresses != null) {
+				if (addresses.size() > 0) {
+					Address returnedAddress = addresses.get(0);
+					StringBuilder strReturnedAddress = new StringBuilder(
+							"Address:\n");
+					for (int i = 0; i < returnedAddress
+							.getMaxAddressLineIndex(); i++) {
+						strReturnedAddress.append(
+								returnedAddress.getAddressLine(i)).append("\n");
+					}
+					address = strReturnedAddress.toString() + "\nlat : "
+							+ latitude + "\nlong : " + longitude;
+				}
+			} else {			
+			}
+		} catch (IOException e) {
+			e.printStackTrace();	
+		}
+	}
+	public void helpButton(View view){
+		Intent intent=new Intent(context,SplashActivity.class);
+		startActivity(intent);
+		finish();
+	}
+	public void saveNumber() {
+		int c = numberlayout.getChildCount();
+		list = new ArrayList<String>();
+		for (int i = 0; i < c; i++) {
+			LinearLayout layout = (LinearLayout) numberlayout.getChildAt(i);
+			EditText editText = (EditText) layout.getChildAt(0);
+			Log.v("", "val : " + editText.getText().toString());
+			String no = editText.getText().toString();
+			if (!no.equalsIgnoreCase("")) {
+				Log.v("number : ",""+no);
+				list.add(no);
+			}			
+		}
+		String s = new MyAdapter(context).saveContacts(list);
+	}
+	int count=0;
+	@Override
+	public void onBackPressed() {
+		count++;
+		if(count==2){
+			try {
+				saveNumber();
+				super.onBackPressed();
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			}
+		}if(count==1) {
+			Toast.makeText(context, "Please back press again to exit", 0).show();
+			
+			new Thread(new Runnable() {
+				
+				@Override
+				public void run() {
+					try {
+						Thread.sleep(1000);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+					count=0;
+				}
+			}).start();
+		}		
+	}
+	
+	@Override
+	public void onLocationChanged(Location location) {
+		latitude= location.getLatitude();
+		longitude= location.getLongitude();
+		Log.v("", "Lat : "+latitude+", Long : "+longitude+","+address);
+		getAddress();
+	}
+	@Override
+	public void onStatusChanged(String provider, int status, Bundle extras) {
+		
+	}
+	@Override
+	public void onProviderEnabled(String provider) {
+		
+	}
+	@Override
+	public void onProviderDisabled(String provider) {
+		
+	}
+}
