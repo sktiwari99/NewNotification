@@ -1,0 +1,100 @@
+
+package com.example.util;
+
+import android.app.Activity;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
+
+public class SharedPreferencesUtility {
+	// shared preference
+	public static final String PREF_FILE_NAME = "myApp";
+	public static final String KEY_USER_LOGIN = "userLogin";
+
+	/**
+	 * Fetch String value for given key from SharedPreference
+	 * 
+	 * @param context
+	 * @param key
+	 * @return String
+	 */
+	public static SharedPreferences sPreference;
+
+	public static String getStringPreferences(Context context, String key) {
+		try {
+			if (sPreference == null) {
+				sPreference = context.getSharedPreferences(PREF_FILE_NAME,
+						Context.MODE_PRIVATE);
+			}
+			String value = sPreference.getString(key, null);
+			return value;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	/**
+	 * Fetch Long value for given key from SharedPreference
+	 * 
+	 * @param context
+	 * @param key
+	 * @return Long
+	 */
+	public static long getLongPreferences(Activity context, String key) {
+		try {
+			if (sPreference == null) {
+				sPreference = context.getSharedPreferences(PREF_FILE_NAME,
+						Context.MODE_PRIVATE);
+			}
+			long value = sPreference.getLong(key, 0);
+			return value;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return 0;
+		}
+	}
+
+	/**
+	 * Put String into SharedPreference
+	 * 
+	 * @param context
+	 * @param key
+	 */
+	public static void putStringPreferences(Activity context, String key,
+			String value) {
+		try {
+			if (sPreference == null) {
+				sPreference = context.getSharedPreferences(PREF_FILE_NAME,
+						Context.MODE_PRIVATE);
+			}
+			Editor editor = sPreference.edit();
+			editor.putString(key, value);
+			editor.commit();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * Put Long into SharedPreference
+	 * 
+	 * @param context
+	 * @param key
+	 */
+	public static void putLongPreferences(Activity context, String key,
+			long value) {
+		try {
+			if (sPreference == null) {
+				sPreference = context.getSharedPreferences(PREF_FILE_NAME,
+						Context.MODE_PRIVATE);
+			}
+			Editor editor = sPreference.edit();
+			editor.putLong(key, value);
+			editor.commit();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+	}
+}
