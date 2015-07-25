@@ -1,0 +1,768 @@
+package com.example.util;
+
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.Iterator;
+import java.util.List;
+import java.util.StringTokenizer;
+import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
+
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.text.method.PasswordTransformationMethod;
+import android.util.Log;
+import android.view.View;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.TextView;
+
+import com.google.gson.Gson;
+
+public class Util {
+	private static Context context;
+	private static final Gson gson = new Gson();
+
+	public Util(Context context) {
+		Util.context = context;
+	}
+
+	private static String TAG = "android.util.Log";
+
+	/**
+	 * 
+	 * @return the device IP Address
+	 */
+	public static String getLocalIpAddress() {
+		try {
+			for (Enumeration<NetworkInterface> en = NetworkInterface
+					.getNetworkInterfaces(); en.hasMoreElements();) {
+				NetworkInterface intf = en.nextElement();
+				for (Enumeration<InetAddress> enumIpAddr = intf
+						.getInetAddresses(); enumIpAddr.hasMoreElements();) {
+					InetAddress inetAddress = enumIpAddr.nextElement();
+					if (!inetAddress.isLoopbackAddress()
+							&& inetAddress instanceof Inet4Address) {
+						return inetAddress.getHostAddress();
+					}
+				}
+			}
+		} catch (SocketException ex) {
+			ex.printStackTrace();
+		}
+		return null;
+	}
+
+	/**
+	 * 
+	 * @return this method is used to get the datetime
+	 */
+
+	public static int getDateTime(String datetime) {
+		int hours = 0;
+		try {
+			// String str = "8/29/2011 11:16:12 AM";
+			Log.v("Util", "datetime : " + datetime);
+			String fmt = "yyyy-MM-dd HH:mm:ss";
+			DateFormat df = new SimpleDateFormat(fmt);
+
+			Date dt = df.parse(datetime);
+
+			DateFormat tdf = new SimpleDateFormat("HH:mm:ss");
+			DateFormat dfmt = new SimpleDateFormat("yyyy-MM-dd");
+
+			String timeOnly = tdf.format(dt);
+			String dateOnly = dfmt.format(dt);
+
+			Calendar calendar = Calendar.getInstance();
+			calendar.setTime(dt);
+			hours = calendar.get(Calendar.HOUR_OF_DAY);
+			int minutes = calendar.get(Calendar.MINUTE);
+			int seconds = calendar.get(Calendar.SECOND);
+			System.out.println("hours : " + hours + ":" + minutes + ":"
+					+ seconds);
+
+			System.out.println("timeOnly : " + timeOnly);
+			System.out.println("dateOnly : " + dateOnly);
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		return hours;
+	}
+
+	/**
+	 * Get the time String from date
+	 */
+
+	public static String getTimeString(String datetime) {
+		String timeOnly = "";
+		try {
+			// String str = "8/29/2011 11:16:12 AM";
+			Log.v("Util", "datetime : " + datetime);
+			String fmt = "yyyy-MM-dd HH:mm:ss";
+			DateFormat df = new SimpleDateFormat(fmt);
+
+			Date dt = df.parse(datetime);
+			DateFormat tdf = new SimpleDateFormat("HH:mm:ss");
+			timeOnly = tdf.format(dt);
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		return timeOnly;
+	}
+
+	/**
+	 * 
+	 * @return Get Device Date-Time
+	 */
+	@SuppressLint("SimpleDateFormat")
+	public static String getDeviceDateTime() {
+
+		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss ");
+		Date date = new Date();
+		String device_date_time = dateFormat.format(date);
+		try {
+			date = dateFormat.parse(device_date_time);
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		String device_time = dateFormat.format(date);
+		return device_time;
+	}
+
+	/**
+	 * 
+	 * @return Get Device Date
+	 */
+	@SuppressLint("SimpleDateFormat")
+	public static String getDeviceDate() {
+
+		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+		Date date = new Date();
+		String device_date_time = dateFormat.format(date);
+		try {
+			date = dateFormat.parse(device_date_time);
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		String device_time = dateFormat.format(date);
+		return device_time;
+	}
+
+	/**
+	 * This method returns last synchronization date
+	 */
+
+	public static String getLastSynchronizedDateString() {
+		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss ");
+		Date date = new Date();
+		String device_date_time = dateFormat.format(date);
+		try {
+			date = dateFormat.parse(device_date_time);
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		String device_time = dateFormat.format(date);
+
+		String fmt = "yyyy-MM-dd HH:mm:ss";
+		DateFormat df = new SimpleDateFormat(fmt);
+
+		Date dt = new Date();
+		try {
+			dt = df.parse(device_time);
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		DateFormat tdf = new SimpleDateFormat("HH:mm:ss");
+		DateFormat dfmt = new SimpleDateFormat("yyyy-MM-dd");
+
+		String timeOnly = tdf.format(dt);
+		String dateOnly = dfmt.format(dt);
+
+		String convert_date = getConvertDateFormatString(dateOnly);
+		convert_date = convert_date.substring(0, convert_date.length() - 4);
+		convert_date = convert_date.replace(",", "");
+		String return_sync_date = convert_date + "" + timeOnly;
+		System.out.println("" + return_sync_date);
+		return return_sync_date;
+	}
+
+	/**
+	 * Get Date Difference b/w two Dates
+	 */
+
+	public static String getDateDifference(String date_created,
+			String device_date) {
+		String str_hour = "";
+		String str_minute = "";
+		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		Date d1 = null;
+		Date d2 = null;
+		try {
+			d1 = format.parse(date_created);
+			d2 = format.parse(device_date);
+			// in milliseconds
+			long diff = d2.getTime() - d1.getTime();
+			long diffSeconds = diff / 1000 % 60;
+			long diffMinutes = diff / (60 * 1000) % 60;
+			long diffHours = diff / (60 * 60 * 1000) % 24;
+			long diffDays = diff / (24 * 60 * 60 * 1000);
+			System.out.print(diffDays + " days, ");
+			System.out.print(diffHours + " hours, ");
+			System.out.print(diffMinutes + " minutes, ");
+			System.out.print(diffSeconds + " seconds.");
+			str_hour = String.valueOf(diffHours);
+			str_minute = String.valueOf(diffMinutes);
+			int min;
+			int hour;
+			int time = Integer.parseInt(str_hour);
+			if (time == 0) {
+				return String.valueOf(str_minute + " minute");
+			} else if (time == 1) {
+				return String.valueOf("" + time + " hour " + str_minute
+						+ " minute");
+			} else if (time >= 24) {
+				time = time / 24;
+				return String.valueOf("" + time + " day");
+			} else {
+				hour = time;
+				// time = time/60;
+				// min = hour%60;
+				return String.valueOf("" + time + " hour " + str_minute
+						+ " minute");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return str_hour;
+	}
+
+	/**
+	 * 
+	 * @return Device Time
+	 */
+	/*
+	 * public static String getDeviceDateTime(){
+	 * 
+	 * DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss ");
+	 * Date date = new Date(); String device_date_time =
+	 * dateFormat.format(date); try { date = dateFormat.parse(device_date_time);
+	 * } catch (ParseException e) { e.printStackTrace(); } DateFormat tdf = new
+	 * SimpleDateFormat("HH:mm:ss"); String device_time = tdf.format(date);
+	 * return device_time; }
+	 */
+
+	
+	/**
+	 * This method is used to valid JSON format
+	 */
+	public static boolean isJSONValid(String JSON_STRING) {
+		try {
+			gson.fromJson(JSON_STRING, Object.class);
+			return true;
+		} catch (com.google.gson.JsonSyntaxException ex) {
+			return false;
+		}
+	}
+
+	public static String listContainsString(List<String> list, String checkStr) {
+		String s = "";
+		try {
+			Iterator<String> iter = list.iterator();
+			while (iter.hasNext()) {
+				s = iter.next();
+				if (s.contains(checkStr)) {
+					return s;
+				} else {
+					s = "null";
+				}
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		return s;
+	}
+
+	
+	/**
+	 * This method is used return date format string
+	 */
+	public static String convertDateFormat(String dateString) {
+		String retDate = "";
+		try {
+			Log.v(TAG, "dateString : " + dateString);
+			String fmt = "yyyy-MM-dd";
+			DateFormat df = new SimpleDateFormat(fmt);
+			Date dt = df.parse(dateString);
+			DateFormat dfmt = new SimpleDateFormat("yyyy-MM-dd");
+			String dateOnly = dfmt.format(dt);
+
+			Calendar calendar = Calendar.getInstance(TimeZone.getDefault());
+			calendar.setTime(dt);
+			int year = calendar.get(Calendar.YEAR);
+			int month = calendar.get(Calendar.MONTH);
+			int day = calendar.get(Calendar.DAY_OF_MONTH);
+			month = month + 1;
+			System.out.println("year : " + year + " month : " + month
+					+ "day : " + day);
+			// String strMonth = String.valueOf(month);
+			String str_month = "";
+			if (month == 01) {
+				Log.v(TAG, "Jan");
+				str_month = "Jan";
+			} else if (month == 02) {
+				Log.v(TAG, "Feb");
+				str_month = "Feb";
+			} else if (month == 03) {
+				Log.v(TAG, "Mar");
+				str_month = "Mar";
+			} else if (month == 04) {
+				Log.v(TAG, "Apr");
+				str_month = "Apr";
+			} else if (month == 05) {
+				Log.v(TAG, "May");
+				str_month = "May";
+			} else if (month == 06) {
+				Log.v(TAG, "June");
+				str_month = "June";
+			} else if (month == 07) {
+				Log.v(TAG, "July");
+				str_month = "July";
+			} else if (month == 010) {
+				Log.v(TAG, "Aug");
+				str_month = "Aug";
+			} else if (month == 011) {
+				Log.v(TAG, "Sep");
+				str_month = "Sep";
+			} else if (month == 10) {
+				Log.v(TAG, "Oct");
+				str_month = "Oct";
+			} else if (month == 11) {
+				Log.v(TAG, "Nov");
+				str_month = "Nov";
+			} else if (month == 12) {
+				Log.v(TAG, "Dec");
+				str_month = "Dec";
+			}
+			retDate = day + " " + str_month + ", " + year;
+			Log.v(TAG, "retDate : " + retDate);
+
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		return retDate;
+	}
+
+	/**
+	 * This method is used return date format string
+	 */
+	public static String convertDateFormate(String dateString) {
+		String retDate = "";
+		try {
+			Log.v(TAG, "dateString : " + dateString);
+			String fmt = "yyyy-MM-dd";
+			DateFormat df = new SimpleDateFormat(fmt);
+			Date dt = df.parse(dateString);
+			DateFormat dfmt = new SimpleDateFormat("yyyy-MM-dd");
+			String dateOnly = dfmt.format(dt);
+
+			Calendar calendar = Calendar.getInstance(TimeZone.getDefault());
+			calendar.setTime(dt);
+			int year = calendar.get(Calendar.YEAR);
+			int month = calendar.get(Calendar.MONTH);
+			int day = calendar.get(Calendar.DAY_OF_MONTH);
+			month = month + 1;
+			System.out.println("year : " + year + " month : " + month
+					+ "day : " + day);
+			// String strMonth = String.valueOf(month);
+			String str_month = "";
+			if (month == 01) {
+				Log.v(TAG, "Jan");
+				str_month = "Jan";
+			} else if (month == 02) {
+				Log.v(TAG, "Feb");
+				str_month = "Feb";
+			} else if (month == 03) {
+				Log.v(TAG, "Mar");
+				str_month = "Mar";
+			} else if (month == 04) {
+				Log.v(TAG, "Apr");
+				str_month = "Apr";
+			} else if (month == 05) {
+				Log.v(TAG, "May");
+				str_month = "May";
+			} else if (month == 06) {
+				Log.v(TAG, "June");
+				str_month = "June";
+			} else if (month == 07) {
+				Log.v(TAG, "July");
+				str_month = "July";
+			} else if (month == 010) {
+				Log.v(TAG, "Aug");
+				str_month = "Aug";
+			} else if (month == 011) {
+				Log.v(TAG, "Sep");
+				str_month = "Sep";
+			} else if (month == 10) {
+				Log.v(TAG, "Oct");
+				str_month = "Oct";
+			} else if (month == 11) {
+				Log.v(TAG, "Nov");
+				str_month = "Nov";
+			} else if (month == 12) {
+				Log.v(TAG, "Dec");
+				str_month = "Dec";
+			}
+			retDate = day + " " + str_month + ",\n " + year;
+			Log.v(TAG, "retDate : " + retDate);
+
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		return retDate;
+	}
+
+	/**
+	 * This method is used for return time duration from date string
+	 */
+	public static int getDurationTimeString(String duration) {
+		int duration_time = 0;
+		try {
+			duration = duration.replace(" ", "");
+			StringTokenizer st = new StringTokenizer(duration, ":");
+			String first = st.nextToken();
+			String second = st.nextToken();
+			int h = Integer.parseInt(first);
+			int s = Integer.parseInt(second);
+			h = h * 60;
+			duration_time = h + s;
+			return duration_time;
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return duration_time;
+	}
+
+	/**
+	 * This method is used for return time duration from date string
+	 */
+	public static int getUpdatedDurationTimeString(String duration) {
+		int duration_time = 0;
+		try {
+			// duration = duration.replace(" ", "");
+			StringTokenizer st = new StringTokenizer(duration, " ");
+			String first = st.nextToken();
+			String second = st.nextToken();
+			String third = st.nextToken();
+			int h = Integer.parseInt(first);
+			int s = Integer.parseInt(third);
+			h = h * 60;
+			duration_time = h + s;
+			return duration_time;
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return duration_time;
+	}
+
+	/**
+	 * This method is used return date format string
+	 */
+	public static String getDateFormatString(String date_string) {
+		// 2015-02-21 20:36:52 PM Send Date Format
+		String day = "";
+		String month = "";
+		String year = "";
+		String str_month = "";
+		String final_date_string = "";
+		try {
+			SimpleDateFormat formatter = new SimpleDateFormat("dd MMMM yyyy");
+			String dateInString = "23 February 2015";
+
+			StringTokenizer tokens = new StringTokenizer(date_string, " ");
+			day = tokens.nextToken();// this will contain "Fruit"
+			month = tokens.nextToken();
+			year = tokens.nextToken();
+
+			month = month.substring(0, Math.min(month.length(), 3));
+			if (month.equalsIgnoreCase("Jan")) {
+
+				str_month = "01";
+				System.out.println("month : " + str_month);
+			} else if (month.equalsIgnoreCase("Feb")) {
+
+				str_month = "02";
+				System.out.println("month : " + str_month);
+			} else if (month.equalsIgnoreCase("Mar")) {
+
+				str_month = "03";
+			} else if (month.equalsIgnoreCase("Apr")) {
+
+				str_month = "04";
+			} else if (month.equalsIgnoreCase("May")) {
+
+				str_month = "05";
+			} else if (month.equalsIgnoreCase("Jun")) {
+
+				str_month = "06";
+			} else if (month.equalsIgnoreCase("Jul")) {
+
+				str_month = "07";
+			} else if (month.equalsIgnoreCase("Aug")) {
+
+				str_month = "08";
+			} else if (month.equalsIgnoreCase("Sep")) {
+
+				str_month = "09";
+			} else if (month.equalsIgnoreCase("Oct")) {
+
+				str_month = "10";
+			} else if (month.equalsIgnoreCase("Nov")) {
+
+				str_month = "11";
+			} else if (month.equalsIgnoreCase("Dec")) {
+
+				str_month = "12";
+			}
+			final_date_string = year + "-" + str_month + "-" + day;
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		return final_date_string;
+	}
+
+	/**
+	 * @ This method is used for convert the dateFormat
+	 */
+	public static String getConvertDateFormatString(String dateString) {
+		String retDate = "";
+		try {
+			Log.v(TAG, "dateString : " + dateString);
+			String fmt = "yyyy-MM-dd";
+			DateFormat df = new SimpleDateFormat(fmt);
+			Date dt = df.parse(dateString);
+			DateFormat dfmt = new SimpleDateFormat("yyyy-MM-dd");
+			String dateOnly = dfmt.format(dt);
+
+			Calendar calendar = Calendar.getInstance();
+			calendar.setTime(dt);
+			int year = calendar.get(Calendar.YEAR);
+			int month = calendar.get(Calendar.MONTH);
+			int day = calendar.get(Calendar.DAY_OF_MONTH);
+			month = month + 1;
+			System.out.println("year : " + year + " month : " + month
+					+ "day : " + day);
+			// String strMonth = String.valueOf(month);
+			String str_month = "";
+			if (month == 01) {
+				Log.v(TAG, "Jan");
+				str_month = "January";
+			} else if (month == 02) {
+				Log.v(TAG, "Feb");
+				str_month = "February";
+			} else if (month == 03) {
+				Log.v(TAG, "Mar");
+				str_month = "March";
+			} else if (month == 04) {
+				Log.v(TAG, "Apr");
+				str_month = "April";
+			} else if (month == 05) {
+				Log.v(TAG, "May");
+				str_month = "May";
+			} else if (month == 06) {
+				Log.v(TAG, "June");
+				str_month = "June";
+			} else if (month == 07) {
+				Log.v(TAG, "July");
+				str_month = "July";
+			} else if (month == 010) {
+				Log.v(TAG, "Aug");
+				str_month = "August";
+			} else if (month == 011) {
+				Log.v(TAG, "Sep");
+				str_month = "September";
+			} else if (month == 10) {
+				Log.v(TAG, "Oct");
+				str_month = "October";
+			} else if (month == 11) {
+				Log.v(TAG, "Nov");
+				str_month = "November";
+			} else if (month == 12) {
+				Log.v(TAG, "Dec");
+				str_month = "December";
+			}
+			retDate = day + " " + str_month + ", " + year;
+			Log.v(TAG, "retDate : " + retDate);
+
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		return retDate;
+	}
+
+	public static Bitmap decodeSampledBitmapFromFile(String path, int reqWidth,
+			int reqHeight) {
+		// First decode with inJustDecodeBounds=true to check dimensions
+		final BitmapFactory.Options options = new BitmapFactory.Options();
+		// Query bitmap without allocating memory
+		options.inJustDecodeBounds = true;
+		// decode file from path
+		BitmapFactory.decodeFile(path, options);
+		// Calculate inSampleSize
+		// Raw height and width of image
+		final int height = options.outHeight;
+		final int width = options.outWidth;
+		// decode according to configuration or according best match
+		options.inPreferredConfig = Bitmap.Config.RGB_565;
+		int inSampleSize = 1;
+		if (height > reqHeight) {
+			inSampleSize = Math.round((float) height / (float) reqHeight);
+		}
+		int expectedWidth = width / inSampleSize;
+		if (expectedWidth > reqWidth) {
+			// if(Math.round((float)width / (float)reqWidth) > inSampleSize) //
+			// If bigger SampSize..
+			inSampleSize = Math.round((float) width / (float) reqWidth);
+		}
+		// if value is greater than 1,sub sample the original image
+		options.inSampleSize = inSampleSize;
+		// Decode bitmap with inSampleSize set
+		options.inJustDecodeBounds = false;
+		return BitmapFactory.decodeFile(path, options);
+	}
+
+	/**
+	 * This method is used to hide the soft input keyboard of device
+	 */
+	public static void hideSoftKeyboard(Activity activity) {
+		try {
+			if (activity.getCurrentFocus() != null) {
+				InputMethodManager inputMethodManager = (InputMethodManager) activity
+						.getSystemService(Context.INPUT_METHOD_SERVICE);
+				inputMethodManager.hideSoftInputFromWindow(activity
+						.getCurrentFocus().getWindowToken(), 0);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * This method return date day in format of today,yesterday.tomorrow
+	 */
+	public static String getTodayYesterdayTomorrow(String date_string) {
+		// String date = "2015-04-29 04:25";
+		try {
+			// date = "2015-04-29 04:25";
+			// Date dateTime = new
+			// SimpleDateFormat("yyyy-MM-dd hh:mm").parse(date_string);
+			Date dateTime = new SimpleDateFormat("yyyy-MM-dd")
+					.parse(date_string);
+			Date now = new Date();
+			Calendar calendar = Calendar.getInstance();
+			calendar.setTime(dateTime);
+			Calendar today = Calendar.getInstance();
+			Calendar yesterday = Calendar.getInstance();
+			Calendar tomorrow = Calendar.getInstance();
+			tomorrow.add(Calendar.DATE, 1);
+			yesterday.add(Calendar.DATE, -1);
+			DateFormat timeFormatter = new SimpleDateFormat("hh:mm");
+
+			if (calendar.get(Calendar.YEAR) == today.get(Calendar.YEAR)
+					&& calendar.get(Calendar.DAY_OF_YEAR) == today
+							.get(Calendar.DAY_OF_YEAR)) {
+				System.out.println("" + "Today "
+						+ timeFormatter.format(dateTime));
+				return "Today";
+			} else if (calendar.get(Calendar.YEAR) == tomorrow
+					.get(Calendar.YEAR)
+					&& calendar.get(Calendar.DAY_OF_YEAR) == tomorrow
+							.get(Calendar.DAY_OF_YEAR)) {
+				System.out.println("" + "Tomorrow "
+						+ timeFormatter.format(dateTime));
+				return "Tomorrow";
+			} else if (calendar.get(Calendar.YEAR) == yesterday
+					.get(Calendar.YEAR)
+					&& calendar.get(Calendar.DAY_OF_YEAR) == yesterday
+							.get(Calendar.DAY_OF_YEAR)) {
+				System.out.println("" + "Yesterday "
+						+ timeFormatter.format(dateTime));
+				return "Yesterday";
+			}
+			/*
+			 * else if (calendar.get(Calendar.YEAR)!=
+			 * yesterday.get(Calendar.YEAR) &&
+			 * calendar.get(Calendar.DAY_OF_YEAR)!= yesterday.get
+			 * (Calendar.DAY_OF_YEAR) && calendar.get(Calendar.YEAR)!=
+			 * today.get(Calendar.YEAR) && calendar.get(Calendar.DAY_OF_YEAR)!=
+			 * today.get(Calendar.DAY_OF_YEAR) && calendar.get(Calendar.YEAR)!=
+			 * tomorrow.get(Calendar.YEAR) &&
+			 * calendar.get(Calendar.DAY_OF_YEAR)!=
+			 * tomorrow.get(Calendar.DAY_OF_YEAR)) {
+			 * System.out.println(TimeUnit.MILLISECONDS.toDays(now.getTime() -
+			 * dateTime.getTime()) + " days ago"); return
+			 * TimeUnit.MILLISECONDS.toDays(now.getTime() - dateTime.getTime())
+			 * + " days ago"; }
+			 */
+			else {
+				System.out.println("" + date_string);
+				return date_string;
+			}
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		return date_string;
+	}
+
+	/**
+	 * This method return day ago
+	 */
+	public static void getDaysAgo() {
+		try {
+			SimpleDateFormat format = new SimpleDateFormat("dd/MM/yyyy");
+			Date past = format.parse("01/10/2010");
+			Date now = new Date();
+			System.out.println(TimeUnit.MILLISECONDS.toMillis(now.getTime()
+					- past.getTime())
+					+ " milliseconds ago");
+			System.out.println(TimeUnit.MILLISECONDS.toMinutes(now.getTime()
+					- past.getTime())
+					+ " minutes ago");
+			System.out.println(TimeUnit.MILLISECONDS.toHours(now.getTime()
+					- past.getTime())
+					+ " hours ago");
+			System.out.println(TimeUnit.MILLISECONDS.toDays(now.getTime()
+					- past.getTime())
+					+ " days ago");
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * This method is used to stop the alarm
+	 */
+	public static void stopAlarm(Context context) {
+		Intent intent = new Intent(context, AlarmReceiver.class);
+		PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 1253,
+				intent, 0);
+		AlarmManager alarmManager = (AlarmManager) context
+				.getSystemService(Context.ALARM_SERVICE);
+		alarmManager.cancel(pendingIntent);
+	}
+}
