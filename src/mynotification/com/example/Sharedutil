@@ -98,3 +98,11 @@ public class SharedPreferencesUtility {
 
 	}
 }
+
+/*set**/
+SharedPreferencesUtility.putStringPreferences(SignInActivity.this,
+SharedPreferencesUtility.KEY_USERLOGIN, userLogin);
+/*get*/
+strLogin = SharedPreferencesUtility.getStringPreferences(
+				MyActivity.this,
+				SharedPreferencesUtility.KEY_USERLOGIN);
