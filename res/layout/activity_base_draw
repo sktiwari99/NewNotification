@@ -1,0 +1,29 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root_base_drawer"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent" >
+
+    <android.support.v4.widget.DrawerLayout
+        android:id="@+id/lytRoot"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent" >
+
+        <FrameLayout
+            android:id="@+id/lytContent"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content" />
+
+        <FrameLayout
+            android:id="@+id/lytDrawerLeft"
+            android:layout_width="270dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="end"
+            android:background="#191919"
+            android:paddingBottom="55dp" />
+    </android.support.v4.widget.DrawerLayout>
+
+    <include
+        android:id="@+id/footer_layout"
+        layout="@layout/copyfooter" />
+
+</RelativeLayout>
