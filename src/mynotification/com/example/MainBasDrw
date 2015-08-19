@@ -48,7 +48,7 @@ import android.widget.Toast;
 
 
 @SuppressLint("NewApi")
-public class BaseDrawerActivity extends FragmentActivity {
+public class MainDrawerActivity extends FragmentActivity {
 
 	private Context mContext;
 	private String str;
