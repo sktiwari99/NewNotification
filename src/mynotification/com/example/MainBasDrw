@@ -1,0 +1,418 @@
+package com.example;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import android.R.string;
+import android.annotation.SuppressLint;
+import android.app.Dialog;
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.os.AsyncTask;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
+import android.support.v4.app.ActionBarDrawerToggle;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.view.View.OnClickListener;
+import android.view.View.OnTouchListener;
+import android.view.animation.TranslateAnimation;
+import android.widget.BaseAdapter;
+import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
+import android.widget.Toast;
+
+
+@SuppressLint("NewApi")
+public class BaseDrawerActivity extends FragmentActivity {
+
+	private Context mContext;
+	private String str;
+	private RelativeLayout root_base_drawer;
+	public static DrawerLayout mDrawerLayout;
+	public static FrameLayout lytDrawerLeft;
+	private FrameLayout lytContent;
+	private Fragment fragment;
+	private FragmentManager fragmentManager;
+	private FragmentTransaction fragmentTransaction;
+	private TextView popular_tags_near_by_textView;
+	public static TextView buy_notify_count_textView;
+	private String str_UserFirstName, str_UserLastName, strLastSynchronization;
+	private View view;
+	public static ListView hashtag_listView;// HashTag Listview
+	private MyHashTagAdapter hashTagAdapter;
+	public static boolean HASHTAG_FLAG = false;
+	public static String str_hashTag,isSubscribe;
+	private TextView market_txtview,buying_txtview,add_item_txtview,selling_txtview, profile_txtview;
+	private ImageView btn_market,btn_buying, btn_add_item, btn_sellings, btn_profile,close_drawer_left_arrow_imageview;
+	ActionBarDrawerToggle mDrawerToggle;
+	private float lastTranslate = 0.0f;
+	private static List<HashTagBean> nearByHashTagList = new ArrayList<HashTagBean>();
+	private HashTagBean hashTagBean;
+	private Dialog mDialog = null;
+	
+	
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		requestWindowFeature(Window.FEATURE_NO_TITLE);
+		mContext = this;
+		setupDrawer();
+		slideFragment();
+	}
+
+	public void slideFragment()
+	{
+		mDrawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout,
+				R.drawable.ic_launcher, //nav menu toggle icon
+				R.string.app_name, // nav drawer open - description for accessibility
+				R.string.app_name // nav drawer close - description for accessibility
+		)  {            
+            @SuppressLint("NewApi")
+            public void onDrawerSlide(View drawerView, float slideOffset)
+            {
+            	
+                float moveFactor = (lytDrawerLeft.getWidth() * slideOffset);
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+                {
+                	lytContent.setTranslationX(-moveFactor);
+                }
+                else
+                {
+                    TranslateAnimation anim = new TranslateAnimation(lastTranslate, moveFactor, 0.0f, 0.0f);
+                    anim.setDuration(0);
+                    anim.setFillAfter(true);
+                    lytContent.startAnimation(anim);
+
+                    lastTranslate = moveFactor;
+                }
+            }
+            @Override
+            public void onDrawerClosed(View drawerView) {
+            	super.onDrawerClosed(drawerView);
+            }
+        };
+
+        mDrawerLayout.setDrawerListener(mDrawerToggle);
+	}
+	
+	
+	void setupDrawer() {
+		try {
+			super.setContentView(R.layout.activity_base_drawer);
+			root_base_drawer = (RelativeLayout) findViewById(R.id.root_base_drawer);
+			mDrawerLayout = (DrawerLayout) findViewById(R.id.lytRoot);
+			lytContent = (FrameLayout) findViewById(R.id.lytContent);
+			lytDrawerLeft = (FrameLayout) findViewById(R.id.lytDrawerLeft);
+			inflateDefaultDrawer();
+			
+				fragment = new MarketActivity();
+				fragmentManager = getSupportFragmentManager();
+				fragmentTransaction = fragmentManager.beginTransaction();
+				fragmentTransaction.replace(R.id.lytContent, fragment);
+				//fragmentTransaction.addToBackStack(null);
+				fragmentTransaction.commit();
+			
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void setContentView(int layoutResId) {
+		LayoutInflater.from(this).inflate(layoutResId, lytContent);
+	}
+
+	protected boolean inflateCustomDrawer() {
+		return false;
+	}
+
+	/**
+	 * method used to generate custom row for sliding drawer
+	 */
+	void inflateDefaultDrawer() {
+		view = LayoutInflater.from(this).inflate(R.layout.default_drawer,
+				lytDrawerLeft);
+		initViewComponent();
+		ViewGroup lytRootItems = (ViewGroup) lytDrawerLeft.getChildAt(0);
+		// set selected item color
+		int selectedIndex = getDrawerSelectedItemIndex();
+		if (selectedIndex >= 0 && selectedIndex < lytRootItems.getChildCount()) {
+			View item = lytRootItems.getChildAt(selectedIndex);
+			item.setSelected(true);
+		}
+	}
+
+	/**
+	 * This method is used for initiate the component view
+	 */
+	private void initViewComponent() {
+		try {
+			
+			hashtag_listView = (ListView) findViewById(R.id.hashtag_listView);
+			popular_tags_near_by_textView = (TextView) findViewById(R.id.popular_tags_near_by_textView);
+			btn_market = (ImageView) findViewById(R.id.btn_market);
+			btn_buying = (ImageView) findViewById(R.id.btn_buying); 
+			btn_add_item = (ImageView) findViewById(R.id.btn_add_item);
+			btn_sellings = (ImageView) findViewById(R.id.btn_sellings);
+			btn_profile = (ImageView) findViewById(R.id.btn_profile);
+			
+			market_txtview = (TextView) findViewById(R.id.market_txtview);
+			close_drawer_left_arrow_imageview = (ImageView) findViewById(R.id.left_arrow_imageview); 
+			buying_txtview = (TextView) findViewById(R.id.buying_txtview); 
+			add_item_txtview = (TextView) findViewById(R.id.add_item_txtview);
+			selling_txtview = (TextView) findViewById(R.id.selling_txtview);
+			profile_txtview = (TextView) findViewById(R.id.profile_txtview); 
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	protected int getDrawerSelectedItemIndex() {
+		return -1;
+	}
+
+	@Override
+	public boolean onPrepareOptionsMenu(Menu menu) {
+		boolean drawerOpen = mDrawerLayout.isDrawerOpen(lytDrawerLeft);
+		// menu.findItem(R.id.action_share_share).setVisible(!drawerOpen);
+		return super.onPrepareOptionsMenu(menu);
+	}
+
+	private void setProfileTab(){
+		profile_txtview.setTextColor(Color.parseColor("#E6532B"));
+		btn_profile.setImageResource(R.drawable.profile_selected_icon);
+		
+		market_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+		buying_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+		add_item_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+		selling_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+		//client_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+		
+		btn_market.setImageResource(R.drawable.market_unselected_icon);
+		btn_buying.setImageResource(R.drawable.buying_unselected_icon);
+		btn_add_item.setImageResource(R.drawable.add_item_unselected_icon);
+		btn_sellings.setImageResource(R.drawable.selling_unselected_icon);
+	}
+	
+	public void openCloseDrawer(View v) {
+		Utils.hideSoftKeyboard(BaseDrawerActivity.this);
+		
+			if (mDrawerLayout.isDrawerOpen(GravityCompat.START)) {
+				mDrawerLayout.closeDrawer(lytDrawerLeft);
+			} else {
+				mDrawerLayout.openDrawer(lytDrawerLeft);
+			}
+	}
+	
+	
+	
+	
+
+	public void buttonOnClick(View view) {
+		market_txtview.setTextColor(Color.parseColor("#E6532B"));
+		btn_market.setImageResource(R.drawable.market_selected_icon);
+		
+		buying_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+		profile_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+		add_item_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+		selling_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+		//client_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+		btn_buying.setImageResource(R.drawable.buying_unselected_icon);
+		btn_profile.setImageResource(R.drawable.profile_unselected_icon);
+		btn_add_item.setImageResource(R.drawable.add_item_unselected_icon);
+		btn_sellings.setImageResource(R.drawable.selling_unselected_icon);
+		
+		fragment = new MarketActivity();
+		fragmentManager = getSupportFragmentManager();
+		fragmentTransaction = fragmentManager.beginTransaction();
+		fragmentTransaction.replace(R.id.lytContent, fragment);
+		//fragmentTransaction.addToBackStack(null);
+		fragmentTransaction.commit();
+	}
+
+	public void InfoOnClick(View view) {
+		if(SharedPreferencesUtility.getStringPreferences(BaseDrawerActivity.this,
+				SharedPreferencesUtility.KEY_USER_ID) == null){
+			buying_txtview.setTextColor(Color.parseColor("#E6532B"));
+			btn_buying.setImageResource(R.drawable.buying_selected_icon);
+		
+			profile_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			market_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			add_item_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			selling_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			//client_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			btn_profile.setImageResource(R.drawable.profile_unselected_icon);
+			btn_market.setImageResource(R.drawable.market_unselected_icon);
+			btn_add_item.setImageResource(R.drawable.add_item_unselected_icon);
+			btn_sellings.setImageResource(R.drawable.selling_unselected_icon);
+		
+			fragment = new LoginRegistrationFragment();
+			fragmentManager = getSupportFragmentManager();
+			fragmentTransaction = fragmentManager.beginTransaction();
+			fragmentTransaction.replace(R.id.lytContent, fragment);
+			//fragmentTransaction.addToBackStack(null);
+			fragmentTransaction.commit();
+		}else{
+			buying_txtview.setTextColor(Color.parseColor("#E6532B"));
+			btn_buying.setImageResource(R.drawable.buying_selected_icon);
+		
+			profile_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			market_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			add_item_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			selling_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			//client_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			btn_profile.setImageResource(R.drawable.profile_unselected_icon);
+			btn_market.setImageResource(R.drawable.market_unselected_icon);
+			btn_add_item.setImageResource(R.drawable.add_item_unselected_icon);
+			btn_sellings.setImageResource(R.drawable.selling_unselected_icon);
+		
+			fragment = new BuyingActivity();
+			fragmentManager = getSupportFragmentManager();
+			fragmentTransaction = fragmentManager.beginTransaction();
+			fragmentTransaction.replace(R.id.lytContent, fragment);
+			//fragmentTransaction.addToBackStack(null);
+			fragmentTransaction.commit();
+		}
+	}
+
+	public void BaseOnClick(View view) {
+		if(SharedPreferencesUtility.getStringPreferences(BaseDrawerActivity.this,
+				SharedPreferencesUtility.KEY_USER_ID) == null){
+			add_item_txtview.setTextColor(Color.parseColor("#E6532B"));
+			btn_add_item.setImageResource(R.drawable.add_item_selected_icon);
+		
+			buying_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			profile_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			market_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			selling_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			//client_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			btn_buying.setImageResource(R.drawable.buying_unselected_icon);
+			btn_profile.setImageResource(R.drawable.profile_unselected_icon);
+			btn_market.setImageResource(R.drawable.market_unselected_icon);
+			btn_sellings.setImageResource(R.drawable.selling_unselected_icon);
+		
+			fragment = new LoginRegistrationFragment();
+			fragmentManager = getSupportFragmentManager();
+			fragmentTransaction = fragmentManager.beginTransaction();
+			fragmentTransaction.replace(R.id.lytContent, fragment);
+			//fragmentTransaction.addToBackStack(null);
+			fragmentTransaction.commit();
+		}else{
+			
+			add_item_txtview.setTextColor(Color.parseColor("#E6532B"));
+			btn_add_item.setImageResource(R.drawable.add_item_selected_icon);
+		
+			buying_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			profile_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			market_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			selling_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			//client_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			btn_buying.setImageResource(R.drawable.buying_unselected_icon);
+			btn_profile.setImageResource(R.drawable.profile_unselected_icon);
+			btn_market.setImageResource(R.drawable.market_unselected_icon);
+			btn_sellings.setImageResource(R.drawable.selling_unselected_icon);
+		
+			fragment = new AddItemActivity();
+			fragmentManager = getSupportFragmentManager();
+			fragmentTransaction = fragmentManager.beginTransaction();
+			fragmentTransaction.replace(R.id.lytContent, fragment);
+			//fragmentTransaction.addToBackStack(null);
+			fragmentTransaction.commit();
+
+		}
+	}
+
+	public void TryOnClick(View view) {
+		if(SharedPreferencesUtility.getStringPreferences(BaseDrawerActivity.this,
+				SharedPreferencesUtility.KEY_USER_ID) == null){
+			selling_txtview.setTextColor(Color.parseColor("#E6532B"));
+			btn_sellings.setImageResource(R.drawable.selling_selected_icon);
+		
+			buying_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			profile_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			market_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			add_item_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			//client_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			btn_profile.setImageResource(R.drawable.profile_unselected_icon);
+			btn_market.setImageResource(R.drawable.market_unselected_icon);
+			btn_add_item.setImageResource(R.drawable.add_item_unselected_icon);
+			btn_buying.setImageResource(R.drawable.buying_unselected_icon);
+		
+			fragment = new LoginRegistrationFragment();
+			fragmentManager = getSupportFragmentManager();
+			fragmentTransaction = fragmentManager.beginTransaction();
+			fragmentTransaction.replace(R.id.lytContent, fragment);
+			//fragmentTransaction.addToBackStack(null);
+			fragmentTransaction.commit();
+		}else{
+			selling_txtview.setTextColor(Color.parseColor("#E6532B"));
+			btn_sellings.setImageResource(R.drawable.selling_selected_icon);
+		
+			buying_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			profile_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			market_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			add_item_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			//client_txtview.setTextColor(Color.parseColor("#A0A0A0"));
+			btn_profile.setImageResource(R.drawable.profile_unselected_icon);
+			btn_market.setImageResource(R.drawable.market_unselected_icon);
+			btn_add_item.setImageResource(R.drawable.add_item_unselected_icon);
+			btn_buying.setImageResource(R.drawable.buying_unselected_icon);
+		
+			fragment = new SellingActivity();
+			fragmentManager = getSupportFragmentManager();
+			fragmentTransaction = fragmentManager.beginTransaction();
+			fragmentTransaction.replace(R.id.lytContent, fragment);
+			//fragmentTransaction.addToBackStack(null);
+			fragmentTransaction.commit();
+		}
+	}
+
+	
+	
+	/**
+	 * This method is used to get close the drawer
+	 */
+	public void leftAeroButtonOnClick(View view){
+		closeDrawer();
+	}
+	
+	/**
+	 * This method is used to close the drawer
+	 */
+	private void closeDrawer() {
+		Utils.hideSoftKeyboard(BaseDrawerActivity.this);
+		if (mDrawerLayout.isDrawerOpen(GravityCompat.END)) {
+			mDrawerLayout.closeDrawer(lytDrawerLeft);
+		} else {
+			mDrawerLayout.openDrawer(lytDrawerLeft);
+		}
+	}
+	
+}
