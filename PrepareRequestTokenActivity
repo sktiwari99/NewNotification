@@ -1,0 +1,189 @@
+
+package com.example;
+
+import twitter4j.Twitter;
+import twitter4j.TwitterException;
+import twitter4j.TwitterFactory;
+import twitter4j.User;
+import twitter4j.auth.AccessToken;
+import twitter4j.auth.RequestToken;
+import twitter4j.conf.ConfigurationBuilder;
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.app.ProgressDialog;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
+import android.content.pm.ActivityInfo;
+import android.graphics.Bitmap;
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
+import android.os.StrictMode;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
+@SuppressWarnings("unused")
+
+/**
+ * Prepares a OAuthConsumer and OAuthProvider OAuthConsumer is configured with
+ * the consumer key & consumer secret. OAuthProvider is configured with the 3
+ * OAuth endpoints. Execute the OAuthRequestTokenTask to retrieve the request,
+ * and authorize the request. After the request is authorized, a callback is
+ * made here.
+ */
+public class PrepareRequestTokenActivity extends Activity {
+	// Constants
+	/**
+	 * Register your here app https://dev.twitter.com/apps/new and get your
+	 * consumer key and secret
+	 */
+	static String TWITTER_CONSUMER_KEY = "UllSDQ7XpxpBWXLievwoxdufF";
+	static String TWITTER_CONSUMER_SECRET = "uCgGsBwPIk0GWMbKbrIEj3IDYxp1lCzVOqzdusZnOq1iZ26khm";
+	// Preference Constants
+	static String PREFERENCE_NAME = "twitter_oauth";
+	public static final String PREF_KEY_OAUTH_TOKEN = "oauth_token";
+	public static final String PREF_KEY_OAUTH_SECRET = "oauth_token_secret";
+	public static final String PREF_KEY_TWITTER_LOGIN = "isTwitterLogedIn";
+	public static final String TWITTER_CALLBACK_URL = "oauth://t4jsample";
+	// Twitter oauth urls
+	static final String URL_TWITTER_AUTH = "auth_url";
+	public static final String URL_TWITTER_OAUTH_VERIFIER = "oauth_verifier";
+	static final String URL_TWITTER_OAUTH_TOKEN = "oauth_token";
+	private static boolean sIsAuthanticate = false;
+	private String mUserName;
+	private String mGetEmail;
+	private static String mMessage="";
+	private static User mUser;
+	public static String username = "";
+	// private static String get_Location = "";
+	public static long mUserID = 0;
+	public static Twitter mTwitterContext;
+	public static RequestToken mRequestTokenContext = null;
+	private static AccessToken mAccessTokenContext;
+	public static SharedPreferences mSharedPreferences;
+	public static boolean mIsBackpressed=false;
+	String img_path;
+	String item_name;
+	String item_description;
+	String item_price;
+	String item_location,product_item_url;
+	private static String final_twitter_msg  = "";
+
+	@SuppressLint("NewApi")
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		PrepareRequestTokenActivity.mIsBackpressed=true;
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+		if (getIntent()!=null) {
+			String string = getIntent().getStringExtra("NewsText");
+			img_path = getIntent().getStringExtra("IMG_PATH");
+			item_name = getIntent().getStringExtra("ITEM_NAME");
+			item_description = getIntent().getStringExtra("ITEM_DESC");
+			item_price = getIntent().getStringExtra("ITEM_PRICE");
+			item_location = getIntent().getStringExtra("ITEM_LOCATION");
+			product_item_url = getIntent().getStringExtra("PRODUCE_ITEM_URL");
+			final_twitter_msg = item_name+"\n"+item_description+"\n"+item_price+"\n"+item_location+"\n"+product_item_url;
+			if (string!=null && !string.equalsIgnoreCase("")) {
+				mMessage = string;	
+			}
+
+		}
+		getTwitterLogin();
+		StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+		StrictMode.setThreadPolicy(policy);
+		//get intent data
+		mSharedPreferences = getApplicationContext().getSharedPreferences(
+				"MyPref", 0);
+		// Check if twitter keys are set
+		if (TWITTER_CONSUMER_KEY.trim().length() == 0
+				|| TWITTER_CONSUMER_SECRET.trim().length() == 0) {
+			return;
+		}
+		loginToTwitter("Hello");
+	}
+	/**
+	 * Initialize the variables if already login
+	 */
+	private void getTwitterLogin()
+	{
+		if (PrepareRequestTokenActivity.mRequestTokenContext != null)
+		{
+			if (!isTwitterLoggedInAlready())
+			{
+				Uri uri = getIntent().getData();
+				if (uri != null
+						&& uri.toString().startsWith(
+								PrepareRequestTokenActivity.TWITTER_CALLBACK_URL))
+				{
+					String verifier = uri
+							.getQueryParameter(PrepareRequestTokenActivity.URL_TWITTER_OAUTH_VERIFIER);
+					try
+					{
+						AccessToken accessToken = PrepareRequestTokenActivity.mTwitterContext
+								.getOAuthAccessToken
+								(PrepareRequestTokenActivity.mRequestTokenContext, verifier);
+						Editor e = PrepareRequestTokenActivity.mSharedPreferences.edit();
+						e.putString(PrepareRequestTokenActivity.PREF_KEY_OAUTH_TOKEN,
+								accessToken.getToken());
+						e.putString(PrepareRequestTokenActivity.PREF_KEY_OAUTH_SECRET,
+								accessToken.getTokenSecret());
+						e.putBoolean(PrepareRequestTokenActivity.PREF_KEY_TWITTER_LOGIN, true);
+						e.commit();
+						mUserName = accessToken.getScreenName();
+						User user2 = PrepareRequestTokenActivity.mTwitterContext
+								.showUser(accessToken.getScreenName());
+						mGetEmail = user2.getScreenName();
+						/*callRegistrationWS(Constant.MSG_PROGESSDIALOG,
+    Constant.PID_LOGIN);*/
+					} catch (Exception e)
+					{
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+
+	}
+	/**
+	 * Method use to login twitter if not login yet else initiate tweet process
+	 * @param message 
+	 * 
+	 * @return Nothing.
+	 */
+	private void loginToTwitter(String message) {
+		// Check if already logged in
+		if (!isTwitterLoggedInAlready()) {
+			ConfigurationBuilder builder = new ConfigurationBuilder();
+			builder.setOAuthConsumerKey(TWITTER_CONSUMER_KEY);
+			builder.setOAuthConsumerSecret(TWITTER_CONSUMER_SECRET);
+			twitter4j.conf.Configuration configuration = builder.build();
+			TwitterFactory factory = new TwitterFactory(configuration);
+			mTwitterContext = factory.getInstance();
+			try {
+				mRequestTokenContext = mTwitterContext
+						.getOAuthRequestToken(TWITTER_CALLBACK_URL);
+				this.startActivity(new Intent(Intent.ACTION_VIEW, Uri
+						.parse(mRequestTokenContext.getAuthenticationURL())));
+				PrepareRequestTokenActivity.this.finish();
+			} catch (TwitterException e) {
+				e.printStackTrace();
+			}
+		} else {
+			try {
+				TwitterUtils.sendTweet(mSharedPreferences, ""+final_twitter_msg,img_path,this);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	// Check if already login into twitter return true else false
+	private boolean isTwitterLoggedInAlready() {
+		return mSharedPreferences.getBoolean(PREF_KEY_TWITTER_LOGIN, false);
+	}
+
+}
+
