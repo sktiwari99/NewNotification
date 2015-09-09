@@ -1,0 +1,160 @@
+package mydatabase.demo.db;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import mydatabase.demo.bean.LoginDTO;
+import mydatabase.demo.bean.RegistrationDTO;
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.util.Log;
+
+public class DatabaseAdapter{
+	SQLiteDatabase sqLiteDatabase = null;
+	
+	public DatabaseAdapter(Context context) {
+		DatabaseHelper databaseHelper = new DatabaseHelper(context);
+		sqLiteDatabase = databaseHelper.getWritableDatabase();
+	}
+	
+	public LoginDTO loginVerify(LoginDTO dTO){
+		LoginDTO loginDTO = null;
+		String val[] = {dTO.getUnm(),dTO.getUp()};
+		Cursor cursor = sqLiteDatabase.query("tbl_login", null, "unm=? and up=?", val, null, null, null);
+		while (cursor.moveToNext()) {
+			dTO.setUnm(cursor.getString(cursor.getColumnIndex("unm")));
+			dTO.setUp(cursor.getString(cursor.getColumnIndex("up")));
+			loginDTO = dTO;
+		}
+		cursor.close();
+		sqLiteDatabase.close();
+		return loginDTO;
+	}
+	
+	public String saveLoginInfo(LoginDTO dTO){
+		String ret = "error";
+		try{
+			ContentValues values = new ContentValues();
+			values.put("unm", dTO.getUnm());
+			values.put("up", dTO.getUp());
+			long x = sqLiteDatabase.insert("tbl_login", null, values);
+			if(x!=-1){
+				ret = "success";
+			}
+		}catch(Exception ex){
+			ex.printStackTrace();
+		}
+		finally{
+			sqLiteDatabase.close();	
+		}
+		return ret;
+	}
+
+	public String saveRegistrationInfo(RegistrationDTO dto) {
+		String ret = "error";
+		try{
+			ContentValues values = new ContentValues();
+			values.put("username", dto.getUsername());
+			values.put("desig", dto.getDesignation());
+			values.put("emailId", dto.getEmailId());
+			values.put("password", dto.getPassword());
+			values.put("contact", dto.getContact());
+			long x = sqLiteDatabase.insert("tbl_registration", null, values);
+			if(x!=-1){
+				ret = "success";
+			}
+			values = new ContentValues();
+			values.put("unm", dto.getUsername());
+			values.put("up", dto.getPassword());
+			long y = sqLiteDatabase.insert("tbl_login", null, values);
+			if(y!=-1){
+				Log.v("DataBaseAdapter SaveRegistration", "LoginSuccess");
+			}
+			
+		}catch(Exception ex){
+			ex.printStackTrace();
+		}
+		finally{
+			sqLiteDatabase.close();
+		}
+		return ret;
+	}
+
+	public RegistrationDTO searchInfo(String str_search_name) {
+		RegistrationDTO dto = null;
+		String val[] = {str_search_name};
+		Cursor cursor = sqLiteDatabase.query("tbl_registration", null, "username=?", val, null, null, null);
+		if(cursor.moveToNext()){
+			dto = new RegistrationDTO();
+			dto.setUsername(cursor.getString(cursor.getColumnIndex("username")));
+			dto.setDesignation(cursor.getString(cursor.getColumnIndex("desig")));
+			dto.setContact(cursor.getString(cursor.getColumnIndex("contact")));
+			dto.setEmailId(cursor.getString(cursor.getColumnIndex("emailId")));
+		}
+		cursor.close();
+		sqLiteDatabase.close();
+		return dto;
+	}
+
+	public String UpdateInfo(RegistrationDTO dto) {
+		String ret = "error";
+		try{
+			ContentValues values = new ContentValues();
+			values.put("desig", dto.getDesignation());
+			values.put("emailId", dto.getEmailId());
+			values.put("contact", dto.getContact());
+			String val[] = {dto.getUsername()};
+			int a = sqLiteDatabase.update("tbl_registration", values, "username=?", val);
+			if(a!=0){
+				ret = "success";
+			}
+		}catch(Exception ex){
+			ex.printStackTrace();
+		}
+		finally{
+			sqLiteDatabase.close();
+		}
+		return ret;
+	}
+	
+	public String deleteInfo(String username){
+		String ret="error";
+		try {
+			String val[]={username};
+			int a = sqLiteDatabase.delete("tbl_registration","username=?",val);
+			if(a!=0){
+				ret = "success";
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally{
+			sqLiteDatabase.close();
+		}
+		return ret;
+	}
+	
+	public List<RegistrationDTO> getAllUserInfo(){
+		List<RegistrationDTO> userList = new ArrayList<RegistrationDTO>();;
+		try {
+			Cursor cursor = sqLiteDatabase.query("tbl_registration", null, null, null, null, null, null);
+			while (cursor.moveToNext()) {
+				RegistrationDTO dto = new RegistrationDTO();
+				dto.setUsername(cursor.getString(cursor.getColumnIndex("username")));
+				dto.setEmailId(cursor.getString(cursor.getColumnIndex("emailId")));
+				dto.setDesignation(cursor.getString(cursor.getColumnIndex("desig")));
+				dto.setContact(cursor.getString(cursor.getColumnIndex("contact")));
+				userList.add(dto);
+			}
+			cursor.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}finally{
+			sqLiteDatabase.close();
+		}
+		return userList;
+	}
+	
+}
