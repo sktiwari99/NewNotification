@@ -1,0 +1,27 @@
+package mydatabase.demo.db;
+
+import mydatabase.demo.util.Constants;
+import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+
+public class DatabaseHelper extends SQLiteOpenHelper {
+
+	public DatabaseHelper(Context context) {
+		super(context, Constants.DATABASENAME, null, Constants.VERSION);
+	}
+
+	@Override
+	public void onCreate(SQLiteDatabase db) {
+		db.execSQL("create table tbl_login (id INTEGER AUTOINCREMENTED PRIMARY KEY,unm varchar(45),up varchar(50))");
+		//db.execSQL("create table tbl_registration (id INTEGER AUTOINCREMENTED PRIMARY KEY,username varchar(45),desig varchar(50),emailId varchar(50),password varchar(50),contact varchar(20))");
+		db.execSQL("create table tbl_registration (username varchar(45) PRIMARY KEY,desig varchar(50),emailId varchar(50),password varchar(50),contact varchar(20))");
+		db.execSQL("insert into tbl_login (unm,up) values ('sk','sk')");
+	}
+
+	@Override
+	public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+		// TODO Auto-generated method stub
+		
+	}
+}
